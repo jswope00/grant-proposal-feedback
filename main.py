@@ -162,7 +162,9 @@ function_map = {
     "text_area": st.text_area,
     "warning": st.warning,
     "button": st.button,
-    "radio": st.radio
+    "radio": st.radio,
+    "markdown": st.markdown,
+    "selectbox": st.selectbox
 }
 
 user_input = {}
@@ -178,9 +180,11 @@ def build_field(i, phases_dict):
     field_max_chars = phase_dict.get("max_chars",None)
     field_help = phase_dict.get("help","")
     field_on_click = phase_dict.get("on_click",None)
-    field_options = phase_dict.get("options","")
+    field_options = phase_dict.get("options",[])
     field_horizontal = phase_dict.get("horizontal",False)
     field_height = phase_dict.get("height",None)
+    field_unsafe_html = phase_dict.get("unsafe_allow_html", False)
+    field_placeholder = phase_dict.get("placeholder","")
 
     kwargs = {}
     if field_label:
@@ -201,16 +205,20 @@ def build_field(i, phases_dict):
         kwargs['horizontal'] = field_horizontal
     if field_height:
         kwargs['height'] = field_height
+    if field_unsafe_html:
+        kwargs['unsafe_allow_html'] = field_unsafe_html
+    if field_placeholder:
+        kwargs['placeholder'] = field_placeholder
  
     key = f"{phase_name}_phase_status"
-    #print("Session State Key: " + key)
-    #print("Phase Status: " + str(st.session_state[key]))
+    
     #If the user has already answered this question:
     if key in st.session_state and st.session_state[key]:
         #Write their answer
-        kwargs['value'] = st.session_state[f"{phase_name}_user_input"]
-        #Disable the field
-        kwargs['disabled'] = True
+        if f"{phase_name}_user_input" in st.session_state:
+            if field_type != "selectbox":
+                kwargs['value'] = st.session_state[f"{phase_name}_user_input"]
+            kwargs['disabled'] = True
 
     my_input_function = function_map[field_type]
 
@@ -367,6 +375,13 @@ def check_score(PHASE_NAME):
         st.session_state[f"{PHASE_NAME}_phase_status"] = False
         return False
 
+def skip_phase(PHASE_NAME, No_Submit=False):
+    st_store(user_input[PHASE_NAME], PHASE_NAME, "user_input")
+    if No_Submit == False:
+        st.session_state[f"{PHASE_NAME}_ai_response"] = "This phase was skipped."
+    st.session_state[f"{PHASE_NAME}_phase_status"] = True
+    st.session_state['CURRENT_PHASE'] = min(st.session_state['CURRENT_PHASE'] + 1, len(PHASES)-1)
+
 def celebration():
     rain(
         emoji="🥳",
@@ -380,7 +395,7 @@ def celebration():
 def main():
     global ASSISTANT_ID
 
-    if 'current_question_index' not in st.session_state:
+    if 'CURRENT_PHASE' not in st.session_state:
         st.session_state.thread_obj = []
 
     st.title(APP_TITLE)
@@ -435,15 +450,24 @@ def main():
         PHASE_DICT = list(PHASES.values())[i]
 
         key = f"{PHASE_NAME}_phase_status"
+      
+        #Check phase status to automatically continue if it's a markdown phase
+        if PHASE_DICT["type"] == "markdown":
+            if key not in st.session_state:
+                st.session_state[key] = True
+                st.session_state['CURRENT_PHASE'] = min(st.session_state['CURRENT_PHASE'] + 1, len(PHASES) - 1)
+
+        
         if key not in st.session_state:
             st.session_state[key] = False
         #If the phase isn't passed and it isn't a recap of the final phase, then give the user a submit button
         if st.session_state[key] != True and final_key not in st.session_state:
-                with st.container(border=False):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        submit_button = st.button(label=PHASE_DICT.get("button_label","Submit"), type="primary", key="submit "+str(i))
-                    with col2:
+            with st.container(border=False):
+                col1, col2 = st.columns(2)
+                with col1:
+                    submit_button = st.button(label=PHASE_DICT.get("button_label","Submit"), type="primary", key="submit "+str(i))
+                with col2:
+                    if PHASE_DICT.get("allow_skip", False):
                         skip_button = st.button(label="Skip Question", key="skip " + str(i))
 
         #If the phase has user input:
@@ -460,24 +484,7 @@ def main():
             if key in st.session_state and SCORING_DEBUG_MODE == True:
                 #Then print the stored AI Response
                 st.info(st.session_state[key], icon ="🤖")
-            #key = f"{PHASE_NAME}_phase_status"
-            #if key in st.session_state:
-            #   st.warning(st.session_state[key])
 
-        
-        #key = f"{PHASE_NAME}_phase_status"
-        #if key not in st.session_state:
-    #       st.session_state[key] = False
-        #st.write("Phase Status: " + str(st.session_state[key]))
-        #if st.session_state[key] != True:
-        #else:
-                #If it is a user input field and it has not been answered, then add a submit button. 
-        ##  with st.container(border=False):
-        #       col1, col2 = st.columns(2)
-    #           with col1:
-        #           submit_button = st.button(label=PHASE_DICT.get("button_label","Submit"), type="primary", key="submit "+str(i))
-        #       with col2:
-        #           skip_button = st.button(label="Skip Question", key="skip " + str(i))
         if submit_button:
             #Add INSTRUCTIONS message to the thread
             openai_assistant.add_message_to_thread(
@@ -518,11 +525,9 @@ def main():
             st.rerun()
 
         if skip_button:
-            st_store(user_input[PHASE_NAME], PHASE_NAME, "user_input")
-            st.session_state[f"{PHASE_NAME}_ai_response"] = "This phase was skipped."
-            st.session_state[f"{PHASE_NAME}_phase_status"] = True
-            st.session_state['CURRENT_PHASE'] = min(st.session_state['CURRENT_PHASE'] + 1, len(PHASES)-1)
+            skip_phase(PHASE_NAME)
             st.rerun()
+
 
         if final_key in st.session_state and i == st.session_state['CURRENT_PHASE']:
             st.success(COMPLETION_MESSAGE)
@@ -531,11 +536,6 @@ def main():
 
         #Increment i, but never more than the number of possible phases
         i = min(i + 1, len(PHASES))
-
-
-
-
-
 
 
 
