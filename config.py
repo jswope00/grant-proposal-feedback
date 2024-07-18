@@ -81,7 +81,9 @@ PHASES = {
        "type": "text_area",
        "height": 300,
        "label": "Now, please attempt to incorporate the relevant feedback and write a second draft fo your introduction.",
-       "value":"Founded in 1981, we now operate 38 stores in six states, including the bookstore at the Anasazi Heritage Center. SNCHA supports the educational, interpretive and research programs of three federal agencies. We also publish The Escalante Community: Where did they go? Why did they leave?, and The Dolores River Guide.  [Mission] The Heritage Center opened to the public in 1988 and averages 40,000+ visitors each year.  SNCHA and the AHC received two previous Colorado State Historical Fund grants totaling more than $135,000, committed to the Lowry CD-rom People in the Past Project. Historical Society product reviews for the project were excellent.",
+       "value":"""Founded in 1981, SNCHA (Southern New Chelsea Housing Association) supports the educational, interpretive and research programs of three federal agencies. We now operate 38 stores in six states, including the bookstore at the Anasazi Heritage Center. We also publish The Escalante Community: Where did they go? Why did they leave?, and The Dolores River Guide.  
+
+The Heritage Center opened to the public in 1988 and averages 40,000+ visitors each year.  SNCHA and the AHC received two previous Colorado State Historical Fund grants totaling more than $135,000, committed to the Lowry CD-rom People in the Past Project. The project has been praised by users and donors alike for being "the most authentic Heritage Center in the country". """,
        "instructions": """Given the user's second draft of their proposal, provide feedback on how well they've incorporated your suggestions. If the student has not made any changes to their original submission in this thread, then admonish them for not following instructions. If the student has made a good faith effort to improve their original submission, then encourage them.
         """,   
        "scored_phase": True,
