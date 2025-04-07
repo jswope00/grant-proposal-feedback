@@ -79,7 +79,7 @@ def build_field(i, phases_dict):
     my_input_function = function_map[field_type]
 
     with stylable_container(
-        key="large_label",
+        key=f"large_label_{phase_name}_{field_key}",
         css_styles="""
             label p {
                 font-weight: bold;
